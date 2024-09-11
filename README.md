@@ -81,6 +81,18 @@ python inference.py "model_path" "img1" "img2" [--save_path SAVE_PATH] [--device
 * ```--frames FRAMES``` Number of frames to interpolate between the input images
 * ```--fps FPS``` FPS of the output video
 
+Or try the **gradio application**. First you need to install gradio on your local environment:
+
+```sh
+pip install gradio
+```
+
+Then, you can run the application:
+
+```sh
+python gradio_app.py gradio_app.py [--port PORT] [--debug] [--share]
+```
+
 ### Results on the 2 example photos from original repository:
 <p float="left">
   <img src="photos/one.png" width="384px" />

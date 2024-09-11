@@ -21,6 +21,7 @@ def select_device(device: str) -> torch.device:
     return torch.device(device)
 
 
+
 def load_model(model_path: str, device: torch.device, half: bool) -> torch.nn.Module:
     model = torch.jit.load(model_path, map_location='cpu')
     if half:

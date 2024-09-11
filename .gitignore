@@ -1,8 +1,11 @@
-/photos/output.mp4
+photos/output.mp4
+outputs/
 
 .env/
 venv/
 __pycache__/
+
+*.DS_Store
 
 checkpoints/*
 !checkpoints/.gitkeep

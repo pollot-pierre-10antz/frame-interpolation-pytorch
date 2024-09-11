@@ -5,10 +5,12 @@ import torch
 import numpy as np
 import cv2
 
+from accelerate import Accelerator
+
 from util import load_image
 
 
-def inference(model_path, img1, img2, save_path, gpu, inter_frames, fps, half):
+def inference(model_path: str, img1: str, img2: str, save_path: str, device: str, inter_frames: int, fps: int, half: bool):
     model = torch.jit.load(model_path, map_location='cpu')
     model.eval()
     img_batch_1, crop_region_1 = load_image(img1)
@@ -16,17 +18,17 @@ def inference(model_path, img1, img2, save_path, gpu, inter_frames, fps, half):
 
     img_batch_1 = torch.from_numpy(img_batch_1).permute(0, 3, 1, 2)
     img_batch_2 = torch.from_numpy(img_batch_2).permute(0, 3, 1, 2)
-
-    if not half:
-        model.float()
-
-    if gpu and torch.cuda.is_available():
-        if half:
-            model = model.half()
-        else:
-            model.float()
-        model = model.cuda()
-
+    
+    # model setup
+    device = Accelerator().device if device=="auto" else torch.device(device)
+    if device.__str__().startswith("mps"):
+        print("WARNING: MPS device not (yet?) supported by the project.")
+        device = "cpu"
+    if half:
+        model = model.half()
+    model = model.to(device)
+    print(f"Model sent to device {device}.")
+    
     if save_path == 'img1 folder':
         save_path = os.path.join(os.path.split(img1)[0], 'output.mp4')
 
@@ -51,12 +53,11 @@ def inference(model_path, img1, img2, save_path, gpu, inter_frames, fps, half):
         x0 = results[start_i]
         x1 = results[end_i]
 
-        if gpu and torch.cuda.is_available():
-            if half:
-                x0 = x0.half()
-                x1 = x1.half()
-            x0 = x0.cuda()
-            x1 = x1.cuda()
+        if half:
+            x0 = x0.half()
+            x1 = x1.half()
+        x0 = x0.to(device)
+        x1 = x1.to(device)
 
         dt = x0.new_full((1, 1), (splits[remains[step]] - splits[idxes[start_i]])) / (splits[idxes[end_i]] - splits[idxes[start_i]])
 
@@ -95,11 +96,11 @@ if __name__ == '__main__':
     parser.add_argument('img2', type=str, help='Path to the second image')
 
     parser.add_argument('--save_path', type=str, default='img1 folder', help='Path to save the interpolated frames')
-    parser.add_argument('--gpu', action='store_true', help='Use GPU')
+    parser.add_argument('--device', type=str, choices=["auto", "gpu", "cpu"], default="auto", help='Device to run the inference (default: choose the optimal device)')
     parser.add_argument('--fp16', action='store_true', help='Use FP16')
     parser.add_argument('--frames', type=int, default=18, help='Number of frames to interpolate')
     parser.add_argument('--fps', type=int, default=10, help='FPS of the output video')
 
     args = parser.parse_args()
 
-    inference(args.model_path, args.img1, args.img2, args.save_path, args.gpu, args.frames, args.fps, args.fp16)
+    inference(args.model_path, args.img1, args.img2, args.save_path, args.device, args.frames, args.fps, args.fp16)

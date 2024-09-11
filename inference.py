@@ -10,24 +10,32 @@ from accelerate import Accelerator
 from util import load_image
 
 
-def inference(model_path: str, img1: str, img2: str, save_path: str, device: str, inter_frames: int, fps: int, half: bool):
+def select_device(device: str) -> torch.device:
+    if device == "auto":
+        accelerator = Accelerator()
+        if accelerator.device.__str__().startswith("mps"):
+            print("WARNING: MPS device not (yet?) supported by the project.")
+            return torch.device("cpu")
+        else: 
+            return accelerator.device
+    return torch.device(device)
+
+
+def load_model(model_path: str, device: torch.device, half: bool) -> torch.nn.Module:
     model = torch.jit.load(model_path, map_location='cpu')
+    if half:
+        model = model.half()
+    model = model.to(device)
+    return model
+
+
+def inference(model: torch.nn.Module, device: torch.device, img1: str, img2: str, save_path: str, inter_frames: int, fps: int, half: bool):
     model.eval()
     img_batch_1, crop_region_1 = load_image(img1)
     img_batch_2, crop_region_2 = load_image(img2)
 
     img_batch_1 = torch.from_numpy(img_batch_1).permute(0, 3, 1, 2)
     img_batch_2 = torch.from_numpy(img_batch_2).permute(0, 3, 1, 2)
-    
-    # model setup
-    device = Accelerator().device if device=="auto" else torch.device(device)
-    if device.__str__().startswith("mps"):
-        print("WARNING: MPS device not (yet?) supported by the project.")
-        device = "cpu"
-    if half:
-        model = model.half()
-    model = model.to(device)
-    print(f"Model sent to device {device}.")
     
     if save_path == 'img1 folder':
         save_path = os.path.join(os.path.split(img1)[0], 'output.mp4')
@@ -102,5 +110,9 @@ if __name__ == '__main__':
     parser.add_argument('--fps', type=int, default=10, help='FPS of the output video')
 
     args = parser.parse_args()
-
-    inference(args.model_path, args.img1, args.img2, args.save_path, args.device, args.frames, args.fps, args.fp16)
+    
+    device = select_device(args.device)
+    model = load_model(args.model_path, device, args.fp16)
+    print(f"Loaded model sent to {device}.")
+    
+    inference(model, device, args.img1, args.img2, args.save_path, args.frames, args.fps, args.fp16)

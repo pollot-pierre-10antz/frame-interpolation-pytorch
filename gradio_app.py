@@ -3,7 +3,6 @@ import gradio as gr
 
 from inference import inference, select_device, load_model
 
-
 this_dir = os.path.dirname(__file__)
 output_folder_path = os.path.join(this_dir, "outputs")
 
@@ -24,12 +23,12 @@ with gr.Blocks() as app:
                 fps = gr.Number(10, precision=0, minimum=1, label="FPS")
             with gr.Row():
                 frame1 = gr.Image(
-                    #value=os.path.join(this_dir, "photos/one.png"),
+                    value=os.path.join(this_dir, "photos/one.png"),
                     type="filepath", 
                     label="Frame 1",
                 )
                 frame2 = gr.Image(
-                    #value=os.path.join(this_dir, "photos/two.png"),
+                    value=os.path.join(this_dir, "photos/two.png"),
                     type="filepath", 
                     label="Frame 2",
                 )
@@ -108,6 +107,10 @@ if __name__ == "__main__":
     parser.add_argument("--share", action="store_true")
     
     args = parser.parse_args()
+    
+    from PIL import PngImagePlugin
+    # issue: https://github.com/python-pillow/Pillow/issues/5610
+    PngImagePlugin.MAX_TEXT_CHUNK *= 10
     
     app.launch(
         debug=args.debug,

@@ -105,12 +105,18 @@ if __name__ == "__main__":
     parser.add_argument("--port", "-p", type=int)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--share", action="store_true")
+    parser.add_argument(
+        "--max_text_chunk_multiplier", 
+        type=int, 
+        default=10, 
+        help="for preventing the issue: 'ValueError: Decompressed Data Too Large'",
+    )
     
     args = parser.parse_args()
     
     from PIL import PngImagePlugin
     # issue: https://github.com/python-pillow/Pillow/issues/5610
-    PngImagePlugin.MAX_TEXT_CHUNK *= 10
+    PngImagePlugin.MAX_TEXT_CHUNK *= args.max_text_chunk_multiplier
     
     app.launch(
         debug=args.debug,
